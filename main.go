@@ -45,7 +45,7 @@ var (
         TerraformDir:    TerraformDir,
         VarFile:         VarFile,
         BackendVarsFile: BackendVarsFile,
-        Destroy:         false, // שנה ל-true אם אתה רוצה למחוק
+        Destroy:         true, // שנה ל-true אם אתה רוצה למחוק
     }
 )
 
@@ -54,7 +54,7 @@ var (
 
 func main() {
 
-	log = logger.InitLogger()
+	log = logger.InitLogger(true)
 	go startWebServer()
 	
 	gcpUtils.RunGCPCheck(&log, projectId)

@@ -1,63 +1,93 @@
-// logger/logger.go
 package logger
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
+
 	"github.com/rs/zerolog"
 )
 
-// LogStream הוא ערוץ (Channel) שאליו נשלחים כל הלוגים החדשים (בפורמט JSON String)
 var LogStream = make(chan []byte, 100)
-// logMu משמש לנעילה לשמירה על בטיחות השרשור של הכתיבה
 var logMu sync.Mutex
 
-// multiWriterLog הוא מבנה שמיישם את הממשק io.Writer
-// הוא כותב בו זמנית גם לקובץ וגם לערוץ ה-LogStream
 type multiWriterLog struct {
 	fileWriter io.Writer
 }
 
 func (w *multiWriterLog) Write(p []byte) (n int, err error) {
-	// 1. כתיבה לקובץ הלוג
-	n, err = w.fileWriter.Write(p)
-	if err != nil {
-		return n, err
+	// 1. הפיכת ה-JSON הדחוס ל-JSON מעוצב (Pretty Print)
+	var jsonObj interface{}
+	// מפענחים את השורה שקיבלנו מ-zerolog
+	if err := json.Unmarshal(p, &jsonObj); err != nil {
+		// אם זה לא JSON תקני, נכתוב אותו כפי שהוא
+		return w.fileWriter.Write(p)
 	}
 
-	// 2. שליחת הלוג לערוץ ה-WebSocket (ב-goroutine כדי לא לחסום את הלוגר)
+	// יוצרים JSON חדש עם רווחים (4 רווחים להזחה)
+	prettyJSON, err := json.MarshalIndent(jsonObj, "", "    ")
+	if err != nil {
+		return w.fileWriter.Write(p)
+	}
+
+	// מוסיפים ירידת שורה כפולה בין לוג ללוג כדי שיהיה קל להבדיל ביניהם
+	prettyJSON = append(prettyJSON, []byte("\n\n")...)
+
+	// 2. כתיבה לקובץ הלוג (הגרסה המעוצבת)
+	_, err = w.fileWriter.Write(prettyJSON)
+	if err != nil {
+		return 0, err
+	}
+
+	// 3. שליחת הלוג המעוצב לערוץ ה-WebSocket
 	logMu.Lock()
 	defer logMu.Unlock()
 	select {
-	case LogStream <- append([]byte{}, p...): // שליחת עותק של הנתונים
+	case LogStream <- append([]byte{}, prettyJSON...):
 	default:
-		// אם הערוץ מלא, מדלגים על הלוג הזה כדי למנוע חסימה
-		// במערכות גדולות יותר נרצה לטפל בזה בצורה חזקה יותר
 	}
 
-	return n, err
+	// מחזירים את האורך המקורי של p כדי ש-zerolog לא יחשוב שהייתה שגיאה
+	return len(p), nil
 }
 
 // InitLogger מאתחל את מערכת הלוגינג
-func InitLogger() zerolog.Logger {
-	// יצירת קובץ הלוג
-	logFilePath := filepath.Join(".", "app.log")
-	logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		(&zerolog.Logger{}).Fatal().Err(err).Msg("Failed to open log file")
-	}
+// cleanLogs: אם true, הקובץ יימחק וייווצר מחדש בכל הפעלה
+func InitLogger(cleanLogs bool) zerolog.Logger {
+    logFilePath := filepath.Join(".", "app.log")
+    
+    // קביעת הדגלים לפתיחת הקובץ
+    // O_CREATE: יוצר את הקובץ אם לא קיים
+    // O_WRONLY: פותח לכתיבה בלבד
+    flags := os.O_CREATE | os.O_WRONLY
+    
+    if cleanLogs {
+        // מרוקן את הקובץ (Truncate)
+        flags |= os.O_TRUNC
+    } else {
+        // מוסיף לסוף הקובץ הקיים (Append)
+        flags |= os.O_APPEND
+    }
 
-	// הגדרת ה-multiWriterLog שיכתוב לקובץ וגם לערוץ
-	writer := &multiWriterLog{fileWriter: logFile}
+    logFile, err := os.OpenFile(logFilePath, flags, 0644)
+    if err != nil {
+        panic("Failed to open log file: " + err.Error())
+    }
 
-	// הגדרת Zerolog להשתמש ב-writer המותאם אישית
-	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	logr := zerolog.New(writer).With().Timestamp().Logger()
+    writer := &multiWriterLog{fileWriter: logFile}
 
-	logr.Info().Msgf("Logger initialized. Logs are being streamed and written to %s", logFilePath)
-	
-	return logr
+    // הגדרת פורמט זמן קריא
+    zerolog.TimeFieldFormat = "2006-01-02 15:04:05"
+    
+    logr := zerolog.New(writer).With().Timestamp().Logger()
+
+    if cleanLogs {
+        logr.Info().Msg("Logger initialized. Previous logs cleared.")
+    } else {
+        logr.Info().Msg("Logger initialized. Appending to existing logs.")
+    }
+    
+    return logr
 }
-
