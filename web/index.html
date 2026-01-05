@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real-Time Log Viewer | Docker Monitoring</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root {
+    --bg-primary: #fafcff;
+    --bg-secondary: #f0f4f8;
+    --bg-card: #ffffff;
+    --bg-hover: #f8fafc;
+    --border: #e6edf4;
+    --border-light: #edf2f7;
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-muted: #718096;
+    --success: #10b981;
+    --info: #3b82f6;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --debug: #8b5cf6;
+    --accent: #6366f1;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    --shadow-lg: 0 10px 25px -5px rgba(59, 130, 246, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+    --radius: 12px;
+    --radius-sm: 8px;
+    --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.app-container { 
+    max-width: 1600px; 
+    margin: 0 auto; 
+    display: flex; 
+    flex-direction: column; 
+    min-height: 100vh;
+    padding: 0 20px;
+}
+
+/* Header - Redesigned */
+.header {
+    background: linear-gradient(135deg, #ffffff 0%, #ffffff 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0;
+    margin-top: 20px;
+    position: relative;
+}
+.header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--info) 0%, var(--accent) 50%, var(--debug) 100%);
+    border-radius: 0 0 4px 4px;
+}
+.header-content { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    flex-wrap: wrap; 
+    gap: 20px;
+}
+.title-section { 
+    display: flex; 
+    align-items: center; 
+    gap: 18px; 
+}
+.logo { 
+    width: 56px; 
+    height: 56px; 
+    background: linear-gradient(135deg, var(--info) 0%, var(--accent) 100%);
+    border-radius: 14px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    font-size: 26px; 
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.title h1 { 
+    font-size: 26px; 
+    font-weight: 700; 
+    margin-bottom: 6px; 
+    background: linear-gradient(90deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.title p { 
+    color: var(--text-muted); 
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+/* Stats - Redesigned */
+.stats-container { 
+    display: flex; 
+    gap: 16px; 
+    flex-wrap: wrap; 
+    justify-content: flex-end;
+}
+.stat-item { 
+    text-align: center; 
+    padding: 14px 20px; 
+    border-radius: var(--radius-sm); 
+    min-width: 100px; 
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    transition: var(--transition);
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+.stat-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+}
+.stat-item:nth-child(1)::before { background: var(--info); }
+.stat-item:nth-child(2)::before { background: var(--warning); }
+.stat-item:nth-child(3)::before { background: var(--error); }
+.stat-item:nth-child(4)::before { background: var(--debug); }
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+.stat-value { 
+    font-size: 24px; 
+    font-weight: 700; 
+    margin-bottom: 4px; 
+}
+.stat-label { 
+    font-size: 13px; 
+    font-weight: 600; 
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Main Content */
+.main-content { 
+    flex: 1; 
+    padding: 30px 0; 
+    width: 100%; 
+}
+
+/* Filters - Redesigned */
+.filters-section { 
+    background: var(--bg-card); 
+    border-radius: var(--radius); 
+    padding: 24px; 
+    margin-bottom: 30px; 
+    box-shadow: var(--shadow); 
+    border: 1px solid var(--border-light);
+}
+.filters-title { 
+    font-size: 17px; 
+    font-weight: 600; 
+    margin-bottom: 20px; 
+    color: var(--text-primary); 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+}
+.filters-title i { 
+    color: var(--accent); 
+    font-size: 18px;
+}
+.filters-row { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 12px; 
+    margin-bottom: 20px; 
+}
+.filter-btn { 
+    padding: 10px 20px; 
+    border-radius: var(--radius-sm); 
+    border: 2px solid var(--border); 
+    background: white; 
+    color: var(--text-secondary); 
+    font-size: 14px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    transition: var(--transition); 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    position: relative;
+    overflow: hidden;
+}
+.filter-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 2px;
+    background: currentColor;
+    transition: width 0.3s ease;
+}
+.filter-btn.active::after {
+    width: 80%;
+}
+.filter-info.active { 
+    border-color: rgba(59,130,246,0.3); 
+    background-color: rgba(59,130,246,0.08); 
+    color: var(--info); 
+}
+.filter-warn.active { 
+    border-color: rgba(245,158,11,0.3); 
+    background-color: rgba(245,158,11,0.08); 
+    color: var(--warning); 
+}
+.filter-error.active { 
+    border-color: rgba(239,68,68,0.3); 
+    background-color: rgba(239,68,68,0.08); 
+    color: var(--error); 
+}
+.filter-debug.active { 
+    border-color: rgba(139,92,246,0.3); 
+    background-color: rgba(139,92,246,0.08); 
+    color: var(--debug); 
+}
+
+/* Actions */
+.actions-row { 
+    display: flex; 
+    gap: 12px; 
+    margin-top: 20px; 
+    flex-wrap: wrap; 
+}
+.action-btn { 
+    padding: 12px 24px; 
+    border-radius: var(--radius-sm); 
+    border: none; 
+    background: linear-gradient(135deg, var(--info) 0%, var(--accent) 100%); 
+    color: white; 
+    font-size: 14px; 
+    font-weight: 600; 
+    cursor: pointer; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    transition: var(--transition);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
+}
+.action-btn.clear { 
+    background: white; 
+    border: 2px solid var(--border); 
+    color: var(--text-secondary); 
+    box-shadow: none;
+}
+.action-btn.clear:hover { 
+    background: var(--bg-hover); 
+    border-color: var(--info);
+    color: var(--info);
+}
+
+/* Logs Container */
+.logs-container { 
+    background: var(--bg-card); 
+    border-radius: var(--radius); 
+    box-shadow: var(--shadow); 
+    border: 1px solid var(--border-light);
+    overflow: hidden; 
+    margin-bottom: 30px; 
+}
+.logs-header { 
+    background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-primary) 100%); 
+    padding: 20px 24px; 
+    border-bottom: 1px solid var(--border); 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    position: relative;
+}
+.logs-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--border) 50%, transparent 100%);
+}
+.logs-title { 
+    font-size: 18px; 
+    font-weight: 700; 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    color: var(--text-primary);
+}
+.logs-title i { 
+    color: var(--accent); 
+    font-size: 20px;
+}
+.connection-status { 
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    font-size: 14px; 
+    color: var(--text-secondary); 
+    background: var(--bg-hover);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+}
+.status-indicator { 
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%; 
+    background-color: var(--success); 
+    position: relative;
+}
+.status-indicator::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    background: var(--success);
+    opacity: 0.4;
+    animation: pulse 2s infinite;
+}
+.status-indicator.disconnected { 
+    background-color: var(--error); 
+}
+.status-indicator.disconnected::before {
+    background: var(--error);
+    animation: none;
+}
+@keyframes pulse { 
+    0% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.2); opacity: 0.2; }
+    100% { transform: scale(1); opacity: 0.4; }
+}
+
+/* Logs */
+.logs-content { 
+    max-height: 65vh; 
+    overflow-y: auto; 
+    padding: 0; 
+}
+.logs-empty { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center; 
+    padding: 60px 20px; 
+    color: var(--text-muted); 
+    text-align: center; 
+}
+.logs-empty i { 
+    font-size: 64px; 
+    margin-bottom: 20px; 
+    opacity: 0.2; 
+    color: var(--accent);
+}
+.logs-empty h3 { 
+    font-size: 20px; 
+    margin-bottom: 12px; 
+    color: var(--text-secondary); 
+    font-weight: 600;
+}
+.logs-empty p { 
+    font-size: 15px; 
+    max-width: 400px; 
+    line-height: 1.5; 
+    color: var(--text-muted);
+}
+
+/* Log Entry - Modern Design */
+.log-entry { 
+    padding: 18px 24px; 
+    border-bottom: 1px solid var(--border-light); 
+    display: flex; 
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 24px;
+    transition: var(--transition);
+    position: relative;
+}
+.log-entry::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: transparent;
+    transition: var(--transition);
+}
+.log-entry.level-info::before { background: var(--info); }
+.log-entry.level-warn::before { background: var(--warning); }
+.log-entry.level-error::before { background: var(--error); }
+.log-entry.level-debug::before { background: var(--debug); }
+.log-entry:hover { 
+    background: var(--bg-hover); 
+}
+.log-entry:hover::before {
+    width: 6px;
+}
+
+/* Left section */
+.log-left { 
+    flex: 1;
+    display: flex; 
+    flex-direction: column; 
+    gap: 10px; 
+}
+.log-message { 
+    font-size: 15px; 
+    font-weight: 500; 
+    color: var(--text-primary); 
+    line-height: 1.5; 
+    padding-right: 10px;
+}
+
+/* Right section */
+.log-right { 
+    display: flex; 
+    flex-direction: column; 
+    align-items: flex-end;
+    gap: 8px; 
+    min-width: 180px;
+}
+.log-meta { 
+    display: flex; 
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px; 
+}
+.log-time { 
+    font-family: 'Roboto Mono', monospace; 
+    font-size: 13px; 
+    color: var(--text-muted); 
+    font-weight: 500; 
+    background: var(--bg-secondary); 
+    padding: 4px 10px; 
+    border-radius: 6px; 
+    border: 1px solid var(--border);
+}
+.log-level { 
+    padding: 5px 14px; 
+    border-radius: 20px; 
+    font-size: 12px; 
+    font-weight: 700; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+    border: 1px solid transparent;
+}
+.level-info { 
+    background: rgba(59,130,246,0.1); 
+    color: var(--info); 
+    border-color: rgba(59,130,246,0.2);
+}
+.level-error { 
+    background: rgba(239,68,68,0.1); 
+    color: var(--error); 
+    border-color: rgba(239,68,68,0.2);
+}
+.level-warn { 
+    background: rgba(245,158,11,0.1); 
+    color: var(--warning); 
+    border-color: rgba(245,158,11,0.2);
+}
+.level-debug { 
+    background: rgba(139,92,246,0.1); 
+    color: var(--debug); 
+    border-color: rgba(139,92,246,0.2);
+}
+.log-id { 
+    font-size: 12px; 
+    color: var(--text-muted); 
+    background: var(--bg-secondary); 
+    padding: 3px 8px; 
+    border-radius: 4px; 
+    font-family: 'Roboto Mono', monospace; 
+    border: 1px solid var(--border);
+}
+
+/* Log Details */
+.log-details { 
+    display: none; 
+    margin-top: 12px; 
+    padding-top: 12px; 
+    border-top: 1px dashed var(--border); 
+}
+.details-title { 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: var(--text-secondary); 
+    margin-bottom: 10px; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+}
+.details-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); 
+    gap: 12px; 
+}
+.detail-item { 
+    display: flex; 
+    flex-direction: column; 
+    background: var(--bg-secondary); 
+    padding: 10px 14px; 
+    border-radius: var(--radius-sm); 
+    border-left: 4px solid var(--info); 
+    border: 1px solid var(--border);
+}
+.detail-label { 
+    font-size: 12px; 
+    font-weight: 600; 
+    color: var(--text-muted); 
+    margin-bottom: 4px; 
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+.detail-value { 
+    font-size: 13px; 
+    color: var(--text-primary); 
+    word-break: break-word; 
+    font-family: 'Roboto Mono', monospace;
+    line-height: 1.4;
+}
+
+.toggle-details { 
+    padding: 6px 14px; 
+    font-size: 13px; 
+    border-radius: 6px; 
+    background: var(--bg-secondary); 
+    border: 1px solid var(--border); 
+    cursor: pointer; 
+    align-self: flex-start;
+    margin-top: 6px;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.toggle-details:hover {
+    background: var(--border);
+    border-color: var(--text-muted);
+}
+
+/* Footer */
+.footer { 
+    background: var(--bg-card); 
+    padding: 20px 0; 
+    border-top: 1px solid var(--border); 
+    color: var(--text-secondary); 
+    font-size: 14px; 
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+.footer-content { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    max-width: 1600px; 
+    margin: 0 auto; 
+    flex-wrap: wrap; 
+    gap: 16px; 
+    padding: 0 24px;
+}
+.footer-content > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+}
+
+/* Custom Scrollbar */
+.logs-content::-webkit-scrollbar {
+    width: 8px;
+}
+.logs-content::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+    border-radius: 4px;
+}
+.logs-content::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 4px;
+}
+.logs-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 1024px){ 
+    .app-container {
+        padding: 0 16px;
+    }
+    .logs-content { max-height: 55vh; } 
+}
+
+@media (max-width: 768px){ 
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .stats-container {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .stat-item {
+        flex: 1;
+        min-width: auto;
+        padding: 12px;
+    }
+    .logs-content { max-height: 50vh; } 
+    .filters-row, .actions-row { justify-content: center; } 
+    .details-grid { grid-template-columns: 1fr; } 
+    .footer-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    /* Mobile layout */
+    .log-entry {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+    .log-right {
+        align-items: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+        min-width: auto;
+    }
+    .log-meta {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+}
+
+@media (max-width: 480px){ 
+    .title h1 { font-size: 22px; }
+    .logo { width: 48px; height: 48px; font-size: 22px; }
+    .filters-row {
+        justify-content: space-between;
+    }
+    .filter-btn {
+        flex: 1;
+        justify-content: center;
+        min-width: calc(50% - 6px);
+    }
+    .action-btn {
+        flex: 1;
+        justify-content: center;
+    }
+}
+</style>
+</head>
+<body>
+<div class="app-container">
+    <header class="header">
+        <div class="header-content">
+            <div class="title-section">
+                <div class="logo"><i class="fas fa-chart-network"></i></div>
+                <div class="title">
+                    <h1>Real-Time Log Viewer</h1>
+                    <p>Docker Log Monitoring System</p>
+                </div>
+            </div>
+            <div class="stats-container">
+                <div class="stat-item"><div class="stat-value" id="info-count">0</div><div class="stat-label">Info</div></div>
+                <div class="stat-item"><div class="stat-value" id="warn-count">0</div><div class="stat-label">Warning</div></div>
+                <div class="stat-item"><div class="stat-value" id="error-count">0</div><div class="stat-label">Error</div></div>
+                <div class="stat-item"><div class="stat-value" id="debug-count">0</div><div class="stat-label">Debug</div></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="main-content">
+        <div class="filters-section">
+            <div class="filters-title"><i class="fas fa-sliders-h"></i> Filter Logs by Level</div>
+            <div class="filters-row">
+                <button class="filter-btn filter-info active" data-level="info"><i class="fas fa-info-circle"></i> Info</button>
+                <button class="filter-btn filter-warn active" data-level="warn"><i class="fas fa-exclamation-triangle"></i> Warning</button>
+                <button class="filter-btn filter-error active" data-level="error"><i class="fas fa-times-circle"></i> Error</button>
+                <button class="filter-btn filter-debug" data-level="debug"><i class="fas fa-bug"></i> Debug</button>
+            </div>
+            <div class="actions-row">
+                <button class="action-btn clear" id="clear-btn"><i class="fas fa-eraser"></i> Clear Logs</button>
+                <button class="action-btn" id="auto-scroll-btn"><i class="fas fa-arrow-down"></i> Auto Scroll</button>
+                <button class="action-btn" id="export-btn"><i class="fas fa-download"></i> Export</button>
+            </div>
+        </div>
+
+        <div class="logs-container">
+            <div class="logs-header">
+                <div class="logs-title"><i class="fas fa-stream"></i> Real-Time Log Stream</div>
+                <div class="connection-status">
+                    <div class="status-indicator" id="connection-status"></div>
+                    <span id="connection-text">Connecting...</span>
+                </div>
+            </div>
+            <div class="logs-content" id="logs-content">
+                <div class="logs-empty" id="empty-state">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h3>No logs to display</h3>
+                    <p>Logs will appear here in real-time as they are received from the Docker server.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div><i class="fas fa-server"></i> Docker Monitoring v2.5</div>
+            <div><i class="fas fa-list-alt"></i> <span id="log-count">0</span> logs • Updated: <span id="last-update">--:--:--</span></div>
+            <div><i class="fas fa-clock"></i> Server Time: <span id="server-time">--:--:--</span></div>
+        </div>
+    </footer>
+</div>
+
+<script>
+// Add Inter font for better typography
+const link = document.createElement('link');
+link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap';
+link.rel = 'stylesheet';
+document.head.appendChild(link);
+
+// DOM Elements
+const logsContent = document.getElementById('logs-content');
+const emptyState = document.getElementById('empty-state');
+const connectionStatus = document.getElementById('connection-status');
+const connectionText = document.getElementById('connection-text');
+const logCountElement = document.getElementById('log-count');
+const lastUpdateElement = document.getElementById('last-update');
+const serverTimeElement = document.getElementById('server-time');
+const clearBtn = document.getElementById('clear-btn');
+const autoScrollBtn = document.getElementById('auto-scroll-btn');
+const exportBtn = document.getElementById('export-btn');
+const filterButtons = document.querySelectorAll('.filter-btn');
+
+const infoCountElement = document.getElementById('info-count');
+const warnCountElement = document.getElementById('warn-count');
+const errorCountElement = document.getElementById('error-count');
+const debugCountElement = document.getElementById('debug-count');
+
+let logEntries = [];
+let autoScrollEnabled = true;
+let logCounter = 0;
+let filters = { info: true, warn: true, error: true, debug: false };
+let stats = { info: 0, warn: 0, error: 0, debug: 0, total: 0 };
+let isConnected = false;
+
+// WebSocket connection
+const socket = new WebSocket("ws://" + window.location.host + "/ws/logs");
+
+function updateLogDisplay() {
+    logsContent.innerHTML = '';
+    const filtered = logEntries.filter(log => filters[log.level]);
+    
+    if (filtered.length === 0) { 
+        emptyState.style.display = 'flex'; 
+        return; 
+    }
+    
+    emptyState.style.display = 'none';
+    
+    // Display logs in reverse chronological order (newest first)
+    filtered.reverse().forEach(log => {
+        logsContent.appendChild(createLogEntry(log));
+    });
+    
+    if (autoScrollEnabled) {
+        logsContent.scrollTop = logsContent.scrollHeight;
+    }
+}
+
+function createLogEntry(log) {
+    const entry = document.createElement('div');
+    entry.className = `log-entry level-${log.level}`;
+    
+    const date = new Date(log.time * 1000 || Date.now());
+    const timeStr = date.toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        hour12: false 
+    });
+    const dateStr = date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
+    
+    const levelText = {
+        'info': 'Info',
+        'warn': 'Warning', 
+        'error': 'Error',
+        'debug': 'Debug'
+    }[log.level] || log.level;
+    
+    let message = log.message || log.msg || 'No message content';
+    
+    // Build details HTML if there are additional fields
+    let detailsHtml = '';
+    const detailKeys = Object.keys(log).filter(k => !['level', 'time', 'message', 'msg', 'id'].includes(k));
+    
+    if (detailKeys.length > 0) {
+        detailsHtml = `
+            <button class="toggle-details">
+                <i class="fas fa-chevron-down"></i> Show Details (${detailKeys.length})
+            </button>
+            <div class="log-details">
+                <div class="details-title">
+                    <i class="fas fa-info-circle"></i> Additional Details
+                </div>
+                <div class="details-grid">
+                    ${detailKeys.map(k => `
+                        <div class="detail-item">
+                            <div class="detail-label">${k}</div>
+                            <div class="detail-value">${typeof log[k] === 'object' ? JSON.stringify(log[k], null, 2) : log[k]}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    entry.innerHTML = `
+        <div class="log-left">
+            <div class="log-message">${escapeHtml(message)}</div>
+            ${detailsHtml}
+        </div>
+        <div class="log-right">
+            <div class="log-meta">
+                <div class="log-time">${dateStr} ${timeStr}</div>
+                <div class="log-level level-${log.level}">${levelText}</div>
+                ${log.id ? `<div class="log-id">${log.id.substring(0, 8)}</div>` : ''}
+            </div>
+        </div>
+    `;
+    
+    // Add toggle functionality for details
+    const toggleBtn = entry.querySelector('.toggle-details');
+    if (toggleBtn) {
+        const detailsDiv = entry.querySelector('.log-details');
+        const chevron = toggleBtn.querySelector('i');
+        
+        toggleBtn.addEventListener('click', () => {
+            if (detailsDiv.style.display === 'none' || !detailsDiv.style.display) {
+                detailsDiv.style.display = 'block';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-up"></i> Hide Details';
+                entry.style.paddingBottom = '24px';
+            } else {
+                detailsDiv.style.display = 'none';
+                toggleBtn.innerHTML = '<i class="fas fa-chevron-down"></i> Show Details';
+                entry.style.paddingBottom = '';
+            }
+        });
+    }
+    
+    return entry;
+}
+
+// Utility function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// WebSocket Event Handlers
+socket.addEventListener('open', () => {
+    isConnected = true;
+    connectionStatus.classList.remove('disconnected');
+    connectionText.innerText = 'Connected';
+    connectionText.style.color = '';
+});
+
+socket.addEventListener('close', () => {
+    isConnected = false;
+    connectionStatus.classList.add('disconnected');
+    connectionText.innerText = 'Disconnected - Reconnecting...';
+    connectionText.style.color = 'var(--error)';
+    
+    // Attempt to reconnect after 3 seconds
+    setTimeout(() => {
+        if (!isConnected) {
+            window.location.reload();
+        }
+    }, 3000);
+});
+
+socket.addEventListener('message', event => {
+    try {
+        const data = JSON.parse(event.data);
+        if (Array.isArray(data)) {
+            data.forEach(log => addLog(log));
+        } else {
+            addLog(data);
+        }
+        lastUpdateElement.innerText = new Date().toLocaleTimeString('en-US', { hour12: false });
+    } catch (e) {
+        console.error('WebSocket Error:', e);
+        // Create error log entry
+        addLog({
+            level: 'error',
+            message: 'Failed to parse WebSocket message',
+            time: Date.now() / 1000,
+            error: e.message
+        });
+    }
+});
+
+socket.addEventListener('error', (error) => {
+    addLog({
+        level: 'error',
+        message: 'WebSocket connection error',
+        time: Date.now() / 1000,
+        error: error.type
+    });
+});
+
+function addLog(log) {
+    if (!log.level) log.level = 'info';
+    
+    logEntries.push(log);
+    logCounter++;
+    stats.total++;
+    
+    if (stats[log.level] !== undefined) {
+        stats[log.level]++;
+    }
+    
+    // Update stats display
+    infoCountElement.innerText = stats.info;
+    warnCountElement.innerText = stats.warn;
+    errorCountElement.innerText = stats.error;
+    debugCountElement.innerText = stats.debug;
+    logCountElement.innerText = logCounter;
+    
+    updateLogDisplay();
+}
+
+// Filter buttons
+filterButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const level = btn.dataset.level;
+        filters[level] = !filters[level];
+        btn.classList.toggle('active', filters[level]);
+        updateLogDisplay();
+    });
+});
+
+// Clear logs button
+clearBtn.addEventListener('click', () => {
+    if (logEntries.length > 0 && confirm('Are you sure you want to clear all logs?')) {
+        logEntries = [];
+        logCounter = 0;
+        stats = { info: 0, warn: 0, error: 0, debug: 0, total: 0 };
+        
+        infoCountElement.innerText = 0;
+        warnCountElement.innerText = 0;
+        errorCountElement.innerText = 0;
+        debugCountElement.innerText = 0;
+        logCountElement.innerText = 0;
+        
+        updateLogDisplay();
+        
+        // Add confirmation log
+        addLog({
+            level: 'info',
+            message: 'Logs cleared successfully',
+            time: Date.now() / 1000,
+            action: 'manual_clear'
+        });
+    }
+});
+
+// Auto-scroll button
+autoScrollBtn.addEventListener('click', () => {
+    autoScrollEnabled = !autoScrollEnabled;
+    autoScrollBtn.innerHTML = autoScrollEnabled 
+        ? '<i class="fas fa-arrow-down"></i> Auto Scroll ON'
+        : '<i class="fas fa-arrow-down"></i> Auto Scroll OFF';
+    
+    autoScrollBtn.style.background = autoScrollEnabled 
+        ? 'linear-gradient(135deg, var(--info) 0%, var(--accent) 100%)'
+        : 'var(--bg-secondary)';
+    
+    autoScrollBtn.style.color = autoScrollEnabled ? 'white' : 'var(--text-secondary)';
+    autoScrollBtn.style.border = autoScrollEnabled ? 'none' : '2px solid var(--border)';
+    
+    if (autoScrollEnabled) {
+        logsContent.scrollTop = logsContent.scrollHeight;
+    }
+});
+
+// Export button (basic implementation)
+exportBtn.addEventListener('click', () => {
+    if (logEntries.length === 0) {
+        alert('No logs to export');
+        return;
+    }
+    
+    const dataStr = JSON.stringify(logEntries, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    
+    const exportFileDefaultName = `docker-logs-${new Date().toISOString().slice(0,10)}.json`;
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    // Add export log
+    addLog({
+        level: 'info',
+        message: `Exported ${logEntries.length} logs to JSON`,
+        time: Date.now() / 1000,
+        action: 'export',
+        count: logEntries.length
+    });
+});
+
+// Update server time
+setInterval(() => {
+    const now = new Date();
+    serverTimeElement.innerText = now.toLocaleTimeString('en-US', { 
+        hour12: false,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}, 1000);
+
+// Add some sample logs on initial load for demo purposes
+setTimeout(() => {
+    if (logEntries.length === 0) {
+        addLog({
+            level: 'info',
+            message: 'Log viewer initialized successfully',
+            time: Date.now() / 1000,
+            component: 'frontend',
+            status: 'ready'
+        });
+        
+        addLog({
+            level: 'info',
+            message: 'WebSocket connection established',
+            time: Date.now() / 1000 + 1,
+            connection: 'websocket',
+            status: 'connected'
+        });
+    }
+}, 1000);
+</script>
+</body>
+</html>
