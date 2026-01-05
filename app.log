@@ -105,3 +105,107 @@
 {"level":"debug","args":["init","-upgrade","-input=false","-backend-config=backend.tfvars","-migrate-state","-no-color"],"time":1767612710,"message":"⚙️ Executing command: terraform"}
 {"level":"error","error":"exit status 1","output":"Initializing the backend...\n\nError: Failed to get existing workspaces: querying Cloud Storage failed: storage: bucket doesn't exist\n\n","command":"terraform","time":1767612711,"message":"❌ Command execution failed"}
 {"level":"fatal","error":"exit status 1","time":1767612711,"message":"❌ Terraform Init failed"}
+{"level":"info","time":1767625897,"message":"Logger initialized. Logs are being streamed and written to app.log"}
+{"level":"info","time":1767625897,"message":"🔍 Checking GCP authentication and project..."}
+{"level":"debug","args":["auth","list","--filter=status:ACTIVE","--format=value(account)"],"time":1767625897,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767625897,"message":"🌐 Starting Web Server on http://localhost:9090. Open this URL in your browser to view logs."}
+{"level":"debug","args":["auth","print-access-token"],"time":1767625901,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767625903,"message":"✅ Authenticated to GCP"}
+{"level":"debug","args":["config","get-value","project"],"time":1767625903,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","current":"sky-geo-dig-dev-t-onbd-1","expected":"sky-geo-dig-dev-u-onbd-1","time":1767625906,"message":"📌 Checking active project"}
+{"level":"warn","time":1767625906,"message":"⚠️ Active project does not match expected project"}
+{"level":"info","project":"sky-geo-dig-dev-u-onbd-1","time":1767625906,"message":"🔄 Switching GCP project..."}
+{"level":"debug","args":["config","set","project","sky-geo-dig-dev-u-onbd-1"],"time":1767625906,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767625908,"message":"✅ Project switched successfully"}
+{"level":"info","time":1767625908,"message":"🚀 GCP environment ready – continuing execution"}
+{"level":"debug","args":["auth","application-default","print-access-token"],"time":1767625908,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","remote_addr":"[::1]:58724","time":1767625910,"message":"New WebSocket client connected"}
+{"level":"info","time":1767625912,"message":"✅ Application Default Credentials ready"}
+{"level":"info","time":1767625912,"message":"🚀 Starting Smart Terraform Workflow"}
+{"level":"info","time":1767625912,"message":"🔍 Checking GCP authentication and project..."}
+{"level":"debug","args":["auth","list","--filter=status:ACTIVE","--format=value(account)"],"time":1767625912,"message":"⚙️ Executing command: gcloud"}
+{"level":"debug","args":["auth","print-access-token"],"time":1767625914,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767625916,"message":"✅ Authenticated to GCP"}
+{"level":"debug","args":["config","get-value","project"],"time":1767625916,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","current":"sky-geo-dig-dev-u-onbd-1","expected":"sky-geo-dig-dev-u-onbd-1","time":1767625918,"message":"📌 Checking active project"}
+{"level":"info","time":1767625918,"message":"✅ Correct GCP project already active"}
+{"level":"info","time":1767625918,"message":"🚀 GCP environment ready – continuing execution"}
+{"level":"debug","args":["auth","application-default","print-access-token"],"time":1767625918,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767625921,"message":"✅ Application Default Credentials ready"}
+{"level":"debug","variable":"bucket","time":1767625921,"message":"🔍 Searching for variable..."}
+{"level":"debug","file":"C:\\Users\\YDamen\\Documents\\testTerraform\\backend.tfvars","time":1767625921,"message":"Found backend config file"}
+{"level":"info","variable":"bucket","value":"sky-geo-dig-dev-u-onbd-1-tfstate","source":"C:\\Users\\YDamen\\Documents\\testTerraform\\backend.tfvars","time":1767625921,"message":"📍 Found variable in backend config file"}
+{"level":"info","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","project":"sky-geo-dig-dev-u-onbd-1","time":1767625921,"message":"🧐 Checking if remote state bucket exists in GCP..."}
+{"level":"warn","error":"storage: bucket doesn't exist: googleapi: Error 404: The specified bucket does not exist., notFound","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","time":1767625922,"message":"🪣 Bucket not accessible/found, attempting to create..."}
+{"level":"error","error":"googleapi: Error 403: Request is prohibited by organization's policy. vpcServiceControlsUniqueIdentifier: Bn5pAxLniQNRaGSq-ZT-KCETjVsHuPeOc64N969uxRp5cF60L8Ugox0qmeBU0Lg3aqX2iWLYnyYaOkk, vpcServiceControls","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","time":1767625922,"message":"❌ Failed to create GCS bucket"}
+{"level":"fatal","error":"googleapi: Error 403: Request is prohibited by organization's policy. vpcServiceControlsUniqueIdentifier: Bn5pAxLniQNRaGSq-ZT-KCETjVsHuPeOc64N969uxRp5cF60L8Ugox0qmeBU0Lg3aqX2iWLYnyYaOkk, vpcServiceControls","time":1767625922,"message":"❌ Failed to verify or create the remote state bucket. Stopping workflow."}
+{"level":"info","time":1767626745,"message":"Logger initialized. Logs are being streamed and written to app.log"}
+{"level":"info","time":1767626745,"message":"🔍 Checking GCP authentication and project..."}
+{"level":"info","time":1767626745,"message":"🌐 Starting Web Server on http://localhost:9090. Open this URL in your browser to view logs."}
+{"level":"debug","args":["auth","list","--filter=status:ACTIVE","--format=value(account)"],"time":1767626745,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","remote_addr":"[::1]:56736","time":1767626746,"message":"New WebSocket client connected"}
+{"level":"debug","args":["auth","print-access-token"],"time":1767626748,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626751,"message":"✅ Authenticated to GCP"}
+{"level":"debug","args":["config","get-value","project"],"time":1767626751,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","current":"sky-geo-dig-dev-u-onbd-1","expected":"sky-geo-dig-dev-u-onbd-1","time":1767626754,"message":"📌 Checking active project"}
+{"level":"info","time":1767626754,"message":"✅ Correct GCP project already active"}
+{"level":"info","time":1767626754,"message":"🚀 GCP environment ready – continuing execution"}
+{"level":"debug","args":["auth","application-default","print-access-token"],"time":1767626754,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626758,"message":"✅ Application Default Credentials ready"}
+{"level":"info","time":1767626758,"message":"🚀 Starting Smart Terraform Workflow"}
+{"level":"info","time":1767626758,"message":"🔍 Checking GCP authentication and project..."}
+{"level":"debug","args":["auth","list","--filter=status:ACTIVE","--format=value(account)"],"time":1767626758,"message":"⚙️ Executing command: gcloud"}
+{"level":"debug","args":["auth","print-access-token"],"time":1767626760,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626762,"message":"✅ Authenticated to GCP"}
+{"level":"debug","args":["config","get-value","project"],"time":1767626762,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","current":"sky-geo-dig-dev-u-onbd-1","expected":"sky-geo-dig-dev-u-onbd-1","time":1767626763,"message":"📌 Checking active project"}
+{"level":"info","time":1767626763,"message":"✅ Correct GCP project already active"}
+{"level":"info","time":1767626763,"message":"🚀 GCP environment ready – continuing execution"}
+{"level":"debug","args":["auth","application-default","print-access-token"],"time":1767626763,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626767,"message":"✅ Application Default Credentials ready"}
+{"level":"debug","variable":"bucket","time":1767626767,"message":"🔍 Searching for variable..."}
+{"level":"debug","file":"C:\\Users\\YDamen\\Documents\\testTerraform\\backend.tfvars","time":1767626767,"message":"Found backend config file"}
+{"level":"info","variable":"bucket","value":"sky-geo-dig-dev-u-onbd-1-tfstate","source":"C:\\Users\\YDamen\\Documents\\testTerraform\\backend.tfvars","time":1767626767,"message":"📍 Found variable in backend config file"}
+{"level":"info","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","project":"sky-geo-dig-dev-u-onbd-1","time":1767626767,"message":"🧐 Checking if remote state bucket exists in GCP..."}
+{"level":"warn","error":"storage: bucket doesn't exist: googleapi: Error 404: The specified bucket does not exist., notFound","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","time":1767626768,"message":"🪣 Bucket not accessible/found, attempting to create..."}
+{"level":"info","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","time":1767626769,"message":"🎉 Successfully created remote state bucket"}
+{"level":"info","dir":"C:\\Users\\YDamen\\Documents\\testTerraform","time":1767626769,"message":"🛠️ Initializing Terraform..."}
+{"level":"debug","args":["init","-upgrade","-input=false","-backend-config=backend.tfvars","-no-color"],"time":1767626769,"message":"⚙️ Executing command: terraform"}
+{"level":"info","time":1767626781,"message":"🚀 Running Terraform Apply..."}
+{"level":"debug","args":["apply","-auto-approve","-var-file=variables.tfvars","-no-color"],"time":1767626781,"message":"⚙️ Executing command: terraform"}
+{"level":"error","error":"exit status 1","output":"\nError: Failed to read variables file\n\nGiven variables file variables.tfvars does not exist.\n","command":"terraform","time":1767626783,"message":"❌ Command execution failed"}
+{"level":"fatal","error":"exit status 1","time":1767626783,"message":"❌ Terraform Apply failed"}
+{"level":"info","time":1767626941,"message":"Logger initialized. Logs are being streamed and written to app.log"}
+{"level":"info","time":1767626941,"message":"🔍 Checking GCP authentication and project..."}
+{"level":"info","time":1767626941,"message":"🌐 Starting Web Server on http://localhost:9090. Open this URL in your browser to view logs."}
+{"level":"debug","args":["auth","list","--filter=status:ACTIVE","--format=value(account)"],"time":1767626941,"message":"⚙️ Executing command: gcloud"}
+{"level":"debug","args":["auth","print-access-token"],"time":1767626944,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","remote_addr":"[::1]:61395","time":1767626945,"message":"New WebSocket client connected"}
+{"level":"info","time":1767626946,"message":"✅ Authenticated to GCP"}
+{"level":"debug","args":["config","get-value","project"],"time":1767626946,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","current":"sky-geo-dig-dev-u-onbd-1","expected":"sky-geo-dig-dev-u-onbd-1","time":1767626948,"message":"📌 Checking active project"}
+{"level":"info","time":1767626948,"message":"✅ Correct GCP project already active"}
+{"level":"info","time":1767626948,"message":"🚀 GCP environment ready – continuing execution"}
+{"level":"debug","args":["auth","application-default","print-access-token"],"time":1767626948,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626953,"message":"✅ Application Default Credentials ready"}
+{"level":"info","time":1767626953,"message":"🚀 Starting Smart Terraform Workflow"}
+{"level":"info","time":1767626953,"message":"🔍 Checking GCP authentication and project..."}
+{"level":"debug","args":["auth","list","--filter=status:ACTIVE","--format=value(account)"],"time":1767626953,"message":"⚙️ Executing command: gcloud"}
+{"level":"debug","args":["auth","print-access-token"],"time":1767626955,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626956,"message":"✅ Authenticated to GCP"}
+{"level":"debug","args":["config","get-value","project"],"time":1767626956,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","current":"sky-geo-dig-dev-u-onbd-1","expected":"sky-geo-dig-dev-u-onbd-1","time":1767626958,"message":"📌 Checking active project"}
+{"level":"info","time":1767626958,"message":"✅ Correct GCP project already active"}
+{"level":"info","time":1767626958,"message":"🚀 GCP environment ready – continuing execution"}
+{"level":"debug","args":["auth","application-default","print-access-token"],"time":1767626958,"message":"⚙️ Executing command: gcloud"}
+{"level":"info","time":1767626962,"message":"✅ Application Default Credentials ready"}
+{"level":"debug","variable":"bucket","time":1767626962,"message":"🔍 Searching for variable..."}
+{"level":"debug","file":"C:\\Users\\YDamen\\Documents\\testTerraform\\backend.tfvars","time":1767626962,"message":"Found backend config file"}
+{"level":"info","variable":"bucket","value":"sky-geo-dig-dev-u-onbd-1-tfstate","source":"C:\\Users\\YDamen\\Documents\\testTerraform\\backend.tfvars","time":1767626962,"message":"📍 Found variable in backend config file"}
+{"level":"info","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","project":"sky-geo-dig-dev-u-onbd-1","time":1767626962,"message":"🧐 Checking if remote state bucket exists in GCP..."}
+{"level":"info","bucket":"sky-geo-dig-dev-u-onbd-1-tfstate","location":"ME-WEST1","time":1767626963,"message":"✅ Remote state bucket verified and accessible"}
+{"level":"info","dir":"C:\\Users\\YDamen\\Documents\\testTerraform","time":1767626963,"message":"🛠️ Initializing Terraform..."}
+{"level":"debug","args":["init","-upgrade","-input=false","-backend-config=backend.tfvars","-no-color"],"time":1767626963,"message":"⚙️ Executing command: terraform"}
+{"level":"info","time":1767626967,"message":"🚀 Running Terraform Apply..."}
+{"level":"debug","args":["apply","-auto-approve","-var-file=variables.tfvars","-no-color"],"time":1767626967,"message":"⚙️ Executing command: terraform"}
+{"level":"info","time":1767626973,"message":"✨ Terraform workflow completed successfully!"}

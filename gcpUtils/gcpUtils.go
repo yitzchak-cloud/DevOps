@@ -1,6 +1,7 @@
 package gcpUtils
 
 import (
+	"os"
 	"strings"
 	"time"
 
@@ -84,16 +85,43 @@ func GetCurrentProject(log *zerolog.Logger) (string, error) {
 }
 
 func SetProject(log *zerolog.Logger, projectID string) error {
-	log.Info().Str("project", projectID).Msg("🔄 Switching GCP project...")
-	_, err := RunCommand(
-		log,
-		"gcloud",
-		"config",
-		"set",
-		"project",
-		projectID,
-	)
-	return err
+    log.Info().Str("project", projectID).Msg("🔄 Switching GCP project and setting quota...")
+
+    // 1. עדכון הפרויקט ב-gcloud config (עבור ה-CLI)
+    _, err := RunCommand(
+        log,
+        "gcloud",
+        "config",
+        "set",
+        "project",
+        projectID,
+    )
+    if err != nil {
+        log.Error().Err(err).Msg("❌ Failed to set gcloud project config")
+        return err
+    }
+
+    // 2. עדכון ה-Quota Project ב-ADC (קריטי ל-VPC Service Controls)
+    _, err = RunCommand(
+        log,
+        "gcloud",
+        "auth",
+        "application-default",
+        "set-quota-project",
+        projectID,
+    )
+    if err != nil {
+        // לפעמים זו שגיאה לא קריטית אם כבר מוגדר פרויקט, אבל כדאי לתעד
+        log.Warn().Err(err).Msg("⚠️ Failed to set application-default quota-project")
+    }
+
+    // 3. הגדרת משתני סביבה בזיכרון (עובד מעולה ב-Windows עבור התהליך הנוכחי)
+    // זה מבטיח שכל כלי (כמו Terraform) שיורץ מהקוד הזה יזהה את הפרויקט מיד
+    os.Setenv("GOOGLE_CLOUD_PROJECT", projectID)
+    os.Setenv("GOOGLE_TERRAFORM_QUOTA_PROJECT", projectID)
+
+    log.Info().Msg("✅ GCP Project and Quota are now synchronized")
+    return nil
 }
 
 func WaitForGCPAuth(log *zerolog.Logger, timeout time.Duration) bool {

@@ -8,10 +8,7 @@ import (
 
 	"DevOps/gcpUtils" // וודא שהנתיב תואם ל-go.mod שלך
 	"cloud.google.com/go/storage"
-	"github.com/hashicorp/hcl/v2"
-	"github.com/hashicorp/hcl/v2/hclparse"
 	"github.com/rs/zerolog"
-	"github.com/zclconf/go-cty/cty"
 	"google.golang.org/api/iterator"
 )
 
@@ -32,51 +29,66 @@ type TerraformOptions struct {
 }
 
 
-// ExtractBackendBucket סורק את כל קבצי ה-tf בתיקייה ומחלץ את שם הבוקט מבלוק ה-backend
+// // ExtractBackendBucket סורק את כל קבצי ה-tf בתיקייה ומחלץ את שם הבוקט מבלוק ה-backend
+// func ExtractBackendBucket(log *zerolog.Logger, dir string) string {
+//     log.Debug().Str("dir", dir).Msg("🔍 Scanning for backend configuration in .tf files...")
+//     parser := hclparse.NewParser()
+//     files, _ := filepath.Glob(filepath.Join(dir, "*.tf"))
+
+//     if len(files) == 0 {
+//         log.Warn().Str("dir", dir).Msg("⚠️ No .tf files found to extract backend from")
+//     }
+
+//     for _, file := range files {
+//         hclFile, diags := parser.ParseHCLFile(file)
+//         if diags.HasErrors() {
+//             log.Debug().Str("file", file).Msg("Skipping file due to HCL parse errors")
+//             continue
+//         }
+
+//         schema := &hcl.BodySchema{
+//             Blocks: []hcl.BlockHeaderSchema{{Type: "terraform"}},
+//         }
+
+//         content, _, _ := hclFile.Body.PartialContent(schema)
+//         for _, block := range content.Blocks {
+//             backendSchema := &hcl.BodySchema{
+//                 Blocks: []hcl.BlockHeaderSchema{{Type: "backend", LabelNames: []string{"type"}}},
+//             }
+//             backendContent, _, _ := block.Body.PartialContent(backendSchema)
+//             for _, b := range backendContent.Blocks {
+//                 if len(b.Labels) > 0 && b.Labels[0] == "gcs" {
+//                     attrs, _ := b.Body.JustAttributes()
+//                     if attr, ok := attrs["bucket"]; ok {
+//                         val, _ := attr.Expr.Value(nil)
+//                         if val.Type() == cty.String {
+//                             bucketName := val.AsString()
+//                             log.Info().Str("bucket", bucketName).Str("source", file).Msg("📍 Found GCS backend bucket in HCL")
+//                             return bucketName
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+//     log.Debug().Msg("ℹ️ No explicit bucket name found in .tf files (may be provided via -backend-config)")
+//     return ""
+// }
+
+// ExtractBackendBucket מחלץ את שם ה-bucket מהגדרות ה-backend
 func ExtractBackendBucket(log *zerolog.Logger, dir string) string {
-    log.Debug().Str("dir", dir).Msg("🔍 Scanning for backend configuration in .tf files...")
-    parser := hclparse.NewParser()
-    files, _ := filepath.Glob(filepath.Join(dir, "*.tf"))
+    extractor := NewTerraformConfigExtractor(log, dir)
+	// // חיפוש bucket מכל המקורות
+	// extractor.ExtractVariable("bucket")
 
-    if len(files) == 0 {
-        log.Warn().Str("dir", dir).Msg("⚠️ No .tf files found to extract backend from")
-    }
+	// // חיפוש רק מקבצי .tf
+	// extractor.ExtractVariable("bucket", ConfigSourceTfFiles)
 
-    for _, file := range files {
-        hclFile, diags := parser.ParseHCLFile(file)
-        if diags.HasErrors() {
-            log.Debug().Str("file", file).Msg("Skipping file due to HCL parse errors")
-            continue
-        }
-
-        schema := &hcl.BodySchema{
-            Blocks: []hcl.BlockHeaderSchema{{Type: "terraform"}},
-        }
-
-        content, _, _ := hclFile.Body.PartialContent(schema)
-        for _, block := range content.Blocks {
-            backendSchema := &hcl.BodySchema{
-                Blocks: []hcl.BlockHeaderSchema{{Type: "backend", LabelNames: []string{"type"}}},
-            }
-            backendContent, _, _ := block.Body.PartialContent(backendSchema)
-            for _, b := range backendContent.Blocks {
-                if len(b.Labels) > 0 && b.Labels[0] == "gcs" {
-                    attrs, _ := b.Body.JustAttributes()
-                    if attr, ok := attrs["bucket"]; ok {
-                        val, _ := attr.Expr.Value(nil)
-                        if val.Type() == cty.String {
-                            bucketName := val.AsString()
-                            log.Info().Str("bucket", bucketName).Str("source", file).Msg("📍 Found GCS backend bucket in HCL")
-                            return bucketName
-                        }
-                    }
-                }
-            }
-        }
-    }
-    log.Debug().Msg("ℹ️ No explicit bucket name found in .tf files (may be provided via -backend-config)")
-    return ""
+	// // חיפוש רק מ-backend files
+	// extractor.ExtractVariable("bucket", ConfigSourceBackendFiles)
+    return extractor.ExtractVariable("bucket")
 }
+
 
 func ensureGCSBucket(log *zerolog.Logger, projectID, bucketName string) error {
     log.Info().Str("bucket", bucketName).Str("project", projectID).Msg("🧐 Checking if remote state bucket exists in GCP...")
@@ -157,7 +169,7 @@ region     = "me-west1"
         "backend.tfvars":   backendVarsContent,
         "provider.tf":      providerContent,
         "variables.tf":     variablesContent,
-        "terraform.tfvars": tfvarsContent,
+        "variables.tfvars": tfvarsContent,
         "main.tf":          "# Main resources\n",
     }
 
