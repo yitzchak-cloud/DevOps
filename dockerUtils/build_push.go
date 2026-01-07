@@ -170,6 +170,46 @@ func ensureGCPAuth(log *zerolog.Logger, region string) error {
 	return nil
 }
 
+func ensureGCPRepo(log *zerolog.Logger, cfg PushConfig) error {
+	log.Info().
+		Str("repo", cfg.RepoName).
+		Str("region", cfg.Region).
+		Msg("🔍 Checking if GCP Artifact Registry repository exists...")
+
+	// 1. בדיקה אם ה-Repository קיים
+	checkArgs := []string{
+		"artifacts", "repositories", "describe",
+		cfg.RepoName,
+		"--project", cfg.ProjectID,
+		"--location", cfg.Region,
+		"--format", "value(name)", // מוציא פלט רק אם נמצא
+	}
+
+	if err := RunCommand(log, "gcloud", checkArgs...); err != nil {
+		log.Warn().Msg("⚠️ Repository not found. Attempting to create it...")
+
+		// 2. יצירת ה-Repository אם הוא לא קיים
+		createArgs := []string{
+			"artifacts", "repositories", "create",
+			cfg.RepoName,
+			"--repository-format=docker",
+			"--project", cfg.ProjectID,
+			"--location", cfg.Region,
+			"--description=Auto-created by build script",
+		}
+
+		if err := RunCommand(log, "gcloud", createArgs...); err != nil {
+			log.Error().Err(err).Msg("❌ Failed to create GCP Artifact Registry repository")
+			return err
+		}
+		log.Info().Msg("✅ Repository created successfully")
+	} else {
+		log.Info().Msg("✅ Repository already exists")
+	}
+
+	return nil
+}
+
 
 // FullBuildTagPush performs the build, tag, and push sequence.
 func FullBuildTagPush(log *zerolog.Logger, buildPath, localTag, remoteTag string) error {
@@ -223,14 +263,20 @@ func FullBuildTagPushWithRegistry(
 		return err
 	}
 
-	// חיבור ל־GCP אם צריך
+	// טיפול ספציפי ב-GCP
 	if cfg.Registry == RegistryGCP {
+		// א. וידוא התחברות (Auth)
 		if err := ensureGCPAuth(log, cfg.Region); err != nil {
+			return err
+		}
+		
+		// ב. וידוא קיום ה-Repository
+		if err := ensureGCPRepo(log, cfg); err != nil {
 			return err
 		}
 	}
 
-	// שימוש מלא בקוד הקיים שלך
+	// המשך התהליך הרגיל (Build, Tag, Push)
 	if err := FullBuildTagPush(log, buildPath, localTag, remoteTag); err != nil {
 		log.Error().
 			Err(err).
@@ -238,8 +284,6 @@ func FullBuildTagPushWithRegistry(
 		return err
 	}
 
-	log.Info().
-		Msg("✨ Docker build/tag/push completed successfully")
-
+	log.Info().Msg("✨ Docker build/tag/push completed successfully")
 	return nil
 }

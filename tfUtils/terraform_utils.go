@@ -6,7 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+
 	"DevOps/gcpUtils" // וודא שהנתיב תואם ל-go.mod שלך
+
 	"cloud.google.com/go/storage"
 	"github.com/rs/zerolog"
 	"google.golang.org/api/iterator"
@@ -14,9 +16,10 @@ import (
 
 // TFConfig מחזיק את ההגדרות להרצת טראפורם
 type TFConfig struct {
-	Dir             string
-	VarFile         string
-	BackendVarsFile string
+    Dir             string
+    VarFile         string
+    BackendVarsFile string
+    Vars            map[string]string 
 }
 
 // TerraformOptions מגדיר את כל מה שצריך להרצה
@@ -43,32 +46,45 @@ func ExtractBackendBucket(log *zerolog.Logger, dir string) string {
 }
 
 func ensureGCSBucket(log *zerolog.Logger, projectID, bucketName string) error {
-    log.Info().Str("bucket", bucketName).Str("project", projectID).Msg("🧐 Checking if remote state bucket exists in GCP...")
+    log.Info().Str("bucket", bucketName).Str("project", projectID).Msg("🧐 Checking remote state bucket...")
     ctx := context.Background()
     client, err := storage.NewClient(ctx)
     if err != nil {
-        log.Error().Err(err).Msg("❌ Failed to create GCP Storage client")
-        return err
+        return fmt.Errorf("❌ failed to create GCP client: %w", err)
     }
     defer client.Close()
 
     bucket := client.Bucket(bucketName)
     attrs, err := bucket.Attrs(ctx)
+
     if err == nil {
-        log.Info().Str("bucket", bucketName).Str("location", attrs.Location).Msg("✅ Remote state bucket verified and accessible")
-        return nil
+        // שימוש ב-attrs כדי למנוע את שגיאת הקומפילציה
+        // אנחנו בודקים אם ה-Bucket קיים ונגיש לנו
+        log.Info().
+            Str("bucket", bucketName).
+            Uint64("project_number", attrs.ProjectNumber).
+            Str("location", attrs.Location).
+            Msg("✅ Bucket exists. Checking if it's the right one...")
+
+        // הערה חשובה: ב-GCP, אם השם תפוס ע"י מישהו אחר, 
+        // לעיתים קרובות לא תהיה לך גישה אפילו ל-Attrs (תקבל 403).
+        // אם הצלחת לקרוא Attrs אבל אתה לא רואה אותו בפרויקט שלך ב-Console,
+        // סימן שהוא שייך לפרויקט אחר שבו יש לך הרשאות.
+        
+        return nil 
     }
 
-    log.Warn().Err(err).Str("bucket", bucketName).Msg("🪣 Bucket not accessible/found, attempting to create...")
+    // אם קיבלנו שגיאה, נבדוק אם זה בגלל שהוא לא קיים
+    log.Warn().Err(err).Str("bucket", bucketName).Msg("🪣 Bucket not found or not accessible, attempting to create...")
 
-    // הגדרת המאפיינים של ה-Bucket
     newAttrs := &storage.BucketAttrs{
-        Location: "me-west1", 
+        Location: "me-west1",
     }
 
     if err := bucket.Create(ctx, projectID, newAttrs); err != nil {
+        // כאן תקבל שגיאת "Conflict" (409) אם השם תפוס גלובלית
         log.Error().Err(err).Str("bucket", bucketName).Msg("❌ Failed to create GCS bucket")
-        return err
+        return fmt.Errorf("conflict: bucket name '%s' might be taken globally: %w", bucketName, err)
     }
 
     log.Info().Str("bucket", bucketName).Msg("🎉 Successfully created remote state bucket")
@@ -136,8 +152,6 @@ region     = "me-west1"
     return nil
 }
 
-
-
 func Init(log *zerolog.Logger, config TFConfig) error {
 	log.Info().Str("dir", config.Dir).Msg("🛠️ Initializing Terraform...")
 
@@ -165,13 +179,21 @@ func Init(log *zerolog.Logger, config TFConfig) error {
 }
 
 func Apply(log *zerolog.Logger, config TFConfig) error {
-	log.Info().Msg("🚀 Running Terraform Apply...")
-	args := []string{"apply", "-auto-approve"}
-	if config.VarFile != "" {
-		args = append(args, fmt.Sprintf("-var-file=%s", config.VarFile))
-	}
-	_, err := RunTerraform(log, config.Dir, args...)
-	return err
+    log.Info().Msg("🚀 Running Terraform Apply...")
+    args := []string{"apply", "-auto-approve"}
+    
+    // הוספת קובץ משתנים אם קיים
+    if config.VarFile != "" {
+        args = append(args, fmt.Sprintf("-var-file=%s", config.VarFile))
+    }
+    
+    // הוספת משתנים בודדים (כמו Project ID)
+    for key, value := range config.Vars {
+        args = append(args, "-var", fmt.Sprintf("%s=%s", key, value))
+    }
+
+    _, err := RunTerraform(log, config.Dir, args...)
+    return err
 }
 
 func Destroy(log *zerolog.Logger, config TFConfig) error {
@@ -248,6 +270,10 @@ func RunTerraformWorkflow(log *zerolog.Logger, opts TerraformOptions) {
 		Dir:             opts.TerraformDir,
 		VarFile:         opts.VarFile,
 		BackendVarsFile: opts.BackendVarsFile,
+		// Vars: map[string]string{
+		// 	"project_info": opts.ProjectID,
+			
+		// },
 	}
 
 	// 4. אתחול

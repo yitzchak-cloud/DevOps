@@ -13,12 +13,12 @@ var log zerolog.Logger
 
 const (
 	buildPath       = "."
-	ImageName       = "myapp"
-	RepoName        = "wi-registry"
-	projectId       = "sky-geo-dig-dev-u-onbd-1"
+	ImageName       = "wiki"
+	RepoName        = "wiki-registry"
+	ProjectID       = "sky-geo-dig-dev-t-cant-1"
 	Region          = "me-west1"
 	DockerNamespace = "myusername"
-	TerraformDir    = "C:\\Users\\YDamen\\Documents\\testTerraform"
+	TerraformDir    = "."
 	VarFile 	   = "variables.tfvars"
 	BackendVarsFile = "backend.tfvars"
 )
@@ -34,18 +34,18 @@ var (
 	gcpConfig = dockerUtils.PushConfig{
 		Registry:  dockerUtils.RegistryGCP,
 		ImageName: ImageName,
-		Tag:       "v1.0.0",
-		ProjectID: projectId,
+		Tag:       "latest",
+		ProjectID: ProjectID,
 		Region:    Region,
 		RepoName:  RepoName,
 	}
 
 	opts = tfUtils.TerraformOptions{
-        ProjectID:       projectId,
+        ProjectID:       ProjectID,
         TerraformDir:    TerraformDir,
         VarFile:         VarFile,
         BackendVarsFile: BackendVarsFile,
-        Destroy:         true, // שנה ל-true אם אתה רוצה למחוק
+        Destroy:         false, // שנה ל-true אם אתה רוצה למחוק
     }
 )
 
@@ -57,7 +57,7 @@ func main() {
 	log = logger.InitLogger(true)
 	go startWebServer()
 	
-	gcpUtils.RunGCPCheck(&log, projectId)
+	gcpUtils.RunGCPCheck(&log, ProjectID)
 
 	// dockerUtils.FullBuildTagPushWithRegistry(
 	// 	&log,
@@ -69,7 +69,7 @@ func main() {
 	// dockerUtils.FullBuildTagPushWithRegistry(
 	// 	&log,
 	// 	".",
-	// 	"myapp:latest",
+	// 	"wiki:latest",
 	// 	gcpConfig,
 	// )
 
