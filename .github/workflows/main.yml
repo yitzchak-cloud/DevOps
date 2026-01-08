@@ -1,0 +1,22 @@
+name: Push Logger
+
+on:
+  push:
+    branches:
+      - main  # כאן תוכל לשנות את שם הסניף אם אתה רוצה לעקוב אחרי סניפים אחרים
+
+jobs:
+  log_push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
+    - name: Log push event
+      run: |
+        echo "Push event detected!"
+        echo "Ref: $GITHUB_REF"
+        echo "Repository: $GITHUB_REPOSITORY"
+        echo "Commit: $GITHUB_SHA"
+        echo "User: $GITHUB_ACTOR"
